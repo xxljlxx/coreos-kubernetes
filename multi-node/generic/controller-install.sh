@@ -133,7 +133,7 @@ ExecStartPre=/usr/bin/mkdir -p /opt/cni/bin
 ExecStartPre=/usr/bin/mkdir -p /var/log/containers
 ExecStartPre=-/usr/bin/rkt rm --uuid-file=${uuid_file}
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
-  --api-servers=http://127.0.0.1:8080 \
+  --api-servers=http://127.0.0.1:8099 \
   --register-schedulable=false \
   --cni-conf-dir=/etc/kubernetes/cni/net.d \
   --network-plugin=cni \
@@ -233,7 +233,7 @@ spec:
     command:
     - /hyperkube
     - proxy
-    - --master=http://127.0.0.1:8080
+    - --master=http://127.0.0.1:8099
     - --cluster-cidr=${POD_NETWORK}
     securityContext:
       privileged: true
@@ -288,7 +288,7 @@ spec:
     livenessProbe:
       httpGet:
         host: 127.0.0.1
-        port: 8080
+        port: 8099
         path: /healthz
       initialDelaySeconds: 15
       timeoutSeconds: 15
@@ -296,8 +296,8 @@ spec:
     - containerPort: 443
       hostPort: 443
       name: https
-    - containerPort: 8080
-      hostPort: 8080
+    - containerPort: 8099
+      hostPort: 8099
       name: local
     volumeMounts:
     - mountPath: /etc/kubernetes/ssl
@@ -333,7 +333,7 @@ spec:
     command:
     - /hyperkube
     - controller-manager
-    - --master=http://127.0.0.1:8080
+    - --master=http://127.0.0.1:8099
     - --leader-elect=true
     - --service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem
     - --root-ca-file=/etc/kubernetes/ssl/ca.pem
@@ -383,7 +383,7 @@ spec:
     command:
     - /hyperkube
     - scheduler
-    - --master=http://127.0.0.1:8080
+    - --master=http://127.0.0.1:8099
     - --leader-elect=true
     resources:
       requests:
@@ -439,7 +439,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz-kubedns
-            port: 8080
+            port: 8099
             scheme: HTTP
           initialDelaySeconds: 60
           timeoutSeconds: 5
@@ -477,7 +477,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz-dnsmasq
-            port: 8080
+            port: 8099
             scheme: HTTP
           initialDelaySeconds: 60
           timeoutSeconds: 5
@@ -534,10 +534,10 @@ spec:
         - --url=/healthz-dnsmasq
         - --cmd=nslookup kubernetes.default.svc.cluster.local 127.0.0.1:10053 >/dev/null
         - --url=/healthz-kubedns
-        - --port=8080
+        - --port=8099
         - --quiet
         ports:
-        - containerPort: 8080
+        - containerPort: 8099
           protocol: TCP
       dnsPolicy: Default
 
@@ -1032,28 +1032,28 @@ EOF
 
 function start_addons {
     echo "Waiting for Kubernetes API..."
-    until curl --silent "http://127.0.0.1:8080/version"
+    until curl --silent "http://127.0.0.1:8099/version"
     do
         sleep 5
     done
 
     echo
     echo "K8S: DNS addon"
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-de.yaml)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-svc.yaml)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-autoscaler-de.yaml)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-de.yaml)" "http://127.0.0.1:8099/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-svc.yaml)" "http://127.0.0.1:8099/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-autoscaler-de.yaml)" "http://127.0.0.1:8099/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
     echo "K8S: Heapster addon"
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-de.yaml)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-svc.yaml)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-de.yaml)" "http://127.0.0.1:8099/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-svc.yaml)" "http://127.0.0.1:8099/api/v1/namespaces/kube-system/services" > /dev/null
     echo "K8S: Dashboard addon"
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dashboard-de.yaml)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
-    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dashboard-svc.yaml)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dashboard-de.yaml)" "http://127.0.0.1:8099/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dashboard-svc.yaml)" "http://127.0.0.1:8099/api/v1/namespaces/kube-system/services" > /dev/null
 }
 
 function start_calico {
     echo "Waiting for Kubernetes API..."
     # wait for the API
-    until curl --silent "http://127.0.0.1:8080/version/"
+    until curl --silent "http://127.0.0.1:8099/version/"
     do
         sleep 5
     done
